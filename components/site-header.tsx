@@ -1,12 +1,11 @@
 'use client'
 
+import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ArrowRight, ChevronDown, Menu, Moon, Sun, X } from 'lucide-react'
 import { servicePages } from '@/lib/services'
-
-const logoUrl = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/304978196_775605153494404_943284715644072812_n-Fh8zCfvO6UszQUbEpjX72Hk5Sn0YGW.png'
 
 export function SiteHeader() {
   const pathname = usePathname()
@@ -53,7 +52,7 @@ export function SiteHeader() {
   return (
     <header className={`site-header ${scrollY > 32 ? 'site-header--scrolled' : ''} ${menuOpen ? 'site-header--menu-open' : ''}`}>
       <Link href="/#inicio" className="brand" aria-label="Businessman Advisor, inicio">
-        <img src={logoUrl} alt="Businessman Advisor" />
+        <img src="./logo.png" alt="Businessman Advisor"/>
       </Link>
       <nav ref={navigationRef} id="site-navigation" className={`main-nav ${menuOpen ? 'main-nav--open' : ''}`} aria-label="Navegación principal">
         <details className="nav-services">

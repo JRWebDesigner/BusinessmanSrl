@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import {
   ArrowDown,
@@ -94,6 +94,35 @@ const heroSlides = [
   },
 ]
 
+const buildAnimatedLine = (text: string) =>
+  text.split('').map((char, index) => {
+    const isSpace = char === ' '
+    const isPunctuation = /[.,!?;]/.test(char)
+    const shiftX = `${(index % 2 === 0 ? -1 : 1) * (index + 1) * 5}px`
+    const shiftY = `${(index % 3 === 0 ? -1 : 1) * (index + 1) * 10}px`
+    const tilt = `${(index % 2 === 0 ? -1 : 1) * (13 + (index % 4) * 5)}deg`
+
+    return (
+      <span
+        key={`${char}-${index}`}
+        className="hero-char"
+        style={{
+          ['--char-shift-x' as string]: shiftX,
+          ['--char-shift-y' as string]: shiftY,
+          ['--char-tilt' as string]: tilt,
+          ['--char-delay' as string]: `${index * 32}ms`,
+          ...(isSpace
+            ? { display: 'inline-block', minWidth: '0.38em' }
+            : isPunctuation
+              ? { marginRight: '0.06em' }
+              : {}),
+        }}
+      >
+        {isSpace ? '\u00A0' : char}
+      </span>
+    )
+  })
+
 export default function Page() {
   const [scrollY, setScrollY] = useState(0)
   const [activeService, setActiveService] = useState(0)
@@ -118,7 +147,7 @@ export default function Page() {
     const onScroll = () => {
       setScrollY(window.scrollY)
       const section = document.getElementById('servicios')
-      if (!section || window.innerWidth < 800) return
+      if (!section || window.innerWidth <= 900) return
       const sectionTop = section.getBoundingClientRect().top + window.scrollY
       const sequenceLength = section.offsetHeight - window.innerHeight
       const progress = Math.max(0, Math.min(0.999, (window.scrollY - sectionTop) / sequenceLength))
@@ -130,6 +159,39 @@ export default function Page() {
     return () => {
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onScroll)
+    }
+  }, [])
+
+  useEffect(() => {
+    const serviceList = document.querySelector<HTMLElement>('.service-list')
+    if (!serviceList) return
+
+    const updateActiveService = () => {
+      if (window.innerWidth > 900) return
+
+      const listCenter = serviceList.getBoundingClientRect().left + serviceList.clientWidth / 2
+      let closestIndex = 0
+      let closestDistance = Number.POSITIVE_INFINITY
+
+      serviceList.querySelectorAll<HTMLElement>('[data-service-index]').forEach((card) => {
+        const cardCenter = card.getBoundingClientRect().left + card.offsetWidth / 2
+        const distance = Math.abs(cardCenter - listCenter)
+        if (distance < closestDistance) {
+          closestDistance = distance
+          closestIndex = Number(card.dataset.serviceIndex)
+        }
+      })
+
+      setActiveService(closestIndex)
+    }
+
+    serviceList.addEventListener('scroll', updateActiveService, { passive: true })
+    window.addEventListener('resize', updateActiveService)
+    updateActiveService()
+
+    return () => {
+      serviceList.removeEventListener('scroll', updateActiveService)
+      window.removeEventListener('resize', updateActiveService)
     }
   }, [])
 
@@ -151,6 +213,13 @@ export default function Page() {
     return () => observer.disconnect()
   }, [])
 
+  const currentSlide = heroSlides[activeHeroSlide]
+  const titleParts = {
+    lead: buildAnimatedLine(currentSlide.lead),
+    highlight: buildAnimatedLine(currentSlide.highlight),
+    ending: buildAnimatedLine(currentSlide.ending),
+  }
+
   return (
     <main className="site-shell">
       <section id="inicio" className="hero-section">
@@ -162,9 +231,9 @@ export default function Page() {
           <div key={activeHeroSlide} className="hero-message">
             <p className="eyebrow"><span /> {heroSlides[activeHeroSlide].eyebrow}</p>
             <h1 className="hero-title">
-              <span>{heroSlides[activeHeroSlide].lead}</span>
-              <em>{heroSlides[activeHeroSlide].highlight}</em>
-              <span>{heroSlides[activeHeroSlide].ending}</span>
+              <span className="hero-title-line">{titleParts.lead}</span>
+              <em className="hero-title-line hero-title-line--highlight">{titleParts.highlight}</em>
+              <span className="hero-title-line">{titleParts.ending}</span>
             </h1>
             <p className="hero-description">{heroSlides[activeHeroSlide].description}</p>
           </div>
@@ -173,7 +242,7 @@ export default function Page() {
             <a className="text-link" href="#servicios">Explorar servicios <ArrowDown aria-hidden="true" /></a>
           </div>
           <div className="hero-slider-controls" aria-label="Controles de la presentación">
-            <span className="hero-slide-count">{String(activeHeroSlide + 1).padStart(2, '0')} <i /> {String(heroSlides.length).padStart(2, '0')}</span>
+            
             <div className="hero-slide-dots">
               {heroSlides.map((slide, index) => (
                 <button
@@ -186,31 +255,27 @@ export default function Page() {
                 />
               ))}
             </div>
-            <div className="hero-slide-buttons">
-              <button type="button" aria-label="Presentación anterior" onClick={() => setActiveHeroSlide((activeHeroSlide - 1 + heroSlides.length) % heroSlides.length)}><ChevronLeft aria-hidden="true" /></button>
-              <button type="button" aria-label="Presentación siguiente" onClick={() => setActiveHeroSlide((activeHeroSlide + 1) % heroSlides.length)}><ChevronRight aria-hidden="true" /></button>
-              <button
-                type="button"
-                aria-label={heroAutoplay ? 'Pausar cambio automático' : 'Reanudar cambio automático'}
-                aria-pressed={!heroAutoplay}
-                onClick={() => setHeroAutoplay(!heroAutoplay)}
-              >{heroAutoplay ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}</button>
-            </div>
+            
           </div>
         </div>
-        <div className="hero-orbit" style={{ transform: `translate3d(0, ${scrollY * 0.12}px, 0) rotate(${scrollY * 0.025}deg)` }} aria-hidden="true">
-          <div className="orbit-ring orbit-ring--outer" />
-          <div className="orbit-ring orbit-ring--inner" />
-          <div className="orbit-card orbit-card--top"><FileCheck2 /><span>Gestión<br />sanitaria</span></div>
-          <div className="orbit-card orbit-card--right"><Globe2 /><span>Comercio<br />exterior</span></div>
-          <div className="orbit-card orbit-card--bottom"><Building2 /><span>Tu empresa<br />crece</span></div>
-          <div className="orbit-core"><span>BM</span><small>ADVISOR</small></div>
+        <div
+          className="hero-orbit-scroll"
+          style={{ transform: `translate3d(0, ${Math.min(scrollY * 0.12, 72)}px, 0) rotate(${Math.min(scrollY * 0.025, 12)}deg)` }}
+          aria-hidden="true"
+        >
+          <div className="hero-orbit">
+            <div className="orbit-ring orbit-ring--outer" />
+            <div className="orbit-ring orbit-ring--inner" />
+            <div className="orbit-card orbit-card--top"><FileCheck2 /><span>Gestión<br />sanitaria</span></div>
+            <div className="orbit-card orbit-card--right"><Globe2 /><span>Comercio<br />exterior</span></div>
+            <div className="orbit-card orbit-card--bottom"><Building2 /><span>Tu empresa<br />crece</span></div>
+            <div className="orbit-card orbit-card--bottom--right "><Building2 /><span>Tu empresa<br />crece</span></div>
+            <div className="orbit-core"><img src="/logor.png" alt="Businessman Advisor" /></div>
+          </div>
         </div>
-        <div className="scroll-cue"><span>01</span><i /><span>scroll para descubrir</span></div>
       </section>
 
       <section className="statement-section" id="nosotros">
-        <div className="section-label">/ 01 — Una visión diferente</div>
         <div className="statement-layout">
           <h2 className="reveal-up">Menos papeleo.<br /><span>Más posibilidades.</span></h2>
           <div className="statement-body reveal-up">
@@ -223,11 +288,13 @@ export default function Page() {
 
       <section className="services-section" id="servicios">
         <div className="services-intro">
-          <div className="section-label">/ 02 — Lo que hacemos</div>
           <h2>Todo resuelto.<br /><span>En un solo lugar.</span></h2>
           <p>Desliza para descubrir cómo podemos acompañar cada etapa de tu negocio.</p>
           <div className="service-progress" aria-label={`Servicio ${activeService + 1} de ${services.length}`}>
-            <span>{String(activeService + 1).padStart(2, '0')}</span><i style={{ transform: `scaleX(${(activeService + 1) / services.length})` }} /><span>06</span>
+            <span className="service-progress-count" aria-hidden="true">
+              {String(activeService + 1).padStart(2, '0')} <b>/ {String(services.length).padStart(2, '0')}</b>
+            </span>
+            <i style={{ '--service-progress': (activeService + 1) / services.length } as CSSProperties} />
           </div>
         </div>
         <div className="service-story">
@@ -247,9 +314,15 @@ export default function Page() {
               </Link>
             ))}
           </div>
-          <div className="service-list">
+          <div className="service-list scroll-reveal" aria-label="Servicios disponibles">
             {services.map(({ number, icon: Icon, slug, title, cardText }, index) => (
-              <Link className={`service-row ${index === activeService ? 'service-row--active' : ''}`} href={`/servicios/${slug}`} key={number}>
+              <Link
+                className={`service-row ${index === activeService ? 'service-row--active' : ''}`}
+                href={`/servicios/${slug}`}
+                key={number}
+                data-service-index={index}
+                style={{ '--service-card-delay': `${index * 70}ms` } as CSSProperties}
+              >
                 <span className="service-number">{number}</span><div className="service-icon"><Icon aria-hidden="true" /></div><div className="service-copy"><h3>{title}</h3><p>{cardText}</p></div><ArrowUpRight className="service-arrow" aria-hidden="true" />
               </Link>
             ))}

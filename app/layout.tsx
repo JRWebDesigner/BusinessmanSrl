@@ -7,8 +7,8 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'Businessman Advisor | Trámites y asesoría empresarial',
   description: 'Gestionamos trámites ante AGEMED, constitución de empresas, despachos aduaneros y asesoría empresarial en Bolivia.',
-  generator: 'v0.app',
-  icons: { icon: '/icon.svg', apple: '/apple-icon.png' },
+  generator: 'Nextcore',
+  icons: { icon: '/logo.png', apple: '/logo.png' },
 }
 
 export const viewport: Viewport = {
